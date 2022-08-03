@@ -18,7 +18,24 @@ exports.getAllProducts = async (req, res) => {
     })
 };
 
-// Update product --- admin
+// get single product
+exports.getSingleProduct = async(req, res, next) => {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+        return res.status(500).json({
+            success: true,
+            message: "Product is not found with this id"
+        })
+    }
+
+    res.status(200).json({
+        success: true,
+        product
+    })
+}
+
+// update product --- admin
 exports.updateProduct = async (req, res) => {
     let product = await Product.findById(req.params.id);
     if (!product) {
@@ -41,6 +58,7 @@ exports.updateProduct = async (req, res) => {
 // delete product
 exports.deleteProduct = async(req, res) => {
     const product = await Product.findById(req.params.id);
+
     if (!product) {
         return res.status(500).json({
             success: true,
