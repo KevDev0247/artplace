@@ -6,6 +6,6 @@ router.route("/registration").post(createUser);
 
 router.route("/login").post(loginUser);
 
-router.route("/logout").post(logoutUser);
+router.route("/logout").get(logoutUser);
 
 module.exports = router;
