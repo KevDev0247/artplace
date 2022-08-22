@@ -17,7 +17,6 @@ exports.createUser = catchAsyncError(async (req, res, next) => {
             url: "http://test.com"
         }
     });
-    const token = user.getJwtToken();
 
     sendToken(user, 201, res);
 });
@@ -38,7 +37,6 @@ exports.loginUser = catchAsyncErrors(async (req, res, next) => {
     if (!isPasswordMatched) {
         return next(new ErrorHandler("User is not found with this email & password", 401));
     }
-    const token = user.getJwtToken();
 
     sendToken(user, 201, res);
 });
