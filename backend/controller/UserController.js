@@ -3,6 +3,8 @@ const ErrorHandler = require("../utils/ErrorHandler");
 const catchAsyncError = require("../middleware/catchAsyncErrors");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const sendToken = require("../utils/jwtToken.js");
+const SendmailTransport = require("nodemailer/lib/sendmail-transport");
+const sendMail = require("../utils/sendMail.js");
 
 // register user
 exports.createUser = catchAsyncError(async (req, res, next) => {
@@ -53,3 +55,44 @@ exports.logoutUser = catchAsyncErrors(async (req, res, next) => {
         message: "Log out success"
     });
 });
+
+// forgot password
+exports.forgotPassword = catchAsyncErrors(async(req, res, next) => {
+    const user = await User.findOne({ email: req.body.email });
+
+    if (!user) {
+        return next(new ErrorHandler("User not found with this email", 404));
+    }
+
+    // Get ResetPassword Token
+    const resetToken = user.getResetToken();
+
+    await user.save({
+        validateBeforeSave: false
+    });
+
+    const resetPasswordUrl = `${req.protocol}://${req.get("host")}/password/reset/${resetToken}`;
+    const message = `Your password reset token is :- \n\n ${resetPasswordUrl}`;
+    
+    try {
+        await sendMail({
+            email: user.email,
+            subject: `Artplace Password Recovery`,
+            message
+        });
+
+        res.status(200).json({
+            success: true,
+            message: `Email sent to ${user.email} successfully`
+        });
+    } catch (error) {
+        user.resetPasswordToken = undefined;
+        user.resetPasswordTime = undefined;
+
+        await user.save({
+            validateBeforeSave: false
+        });
+
+        return next(new ErrorHandler(error.message));
+    }
+})
