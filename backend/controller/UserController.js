@@ -3,12 +3,12 @@ const ErrorHandler = require("../utils/ErrorHandler");
 const catchAsyncError = require("../middleware/catchAsyncErrors");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const sendToken = require("../utils/jwtToken.js");
-const SendmailTransport = require("nodemailer/lib/sendmail-transport");
 const sendMail = require("../utils/sendMail.js");
+const crypto = require("crypto");
 
 // register user
 exports.createUser = catchAsyncError(async (req, res, next) => {
-    const {name, email, password} = req.body;
+    const { name, email, password } = req.body;
 
     const user = await User.create({
         name,
@@ -25,11 +25,11 @@ exports.createUser = catchAsyncError(async (req, res, next) => {
 
 // login user
 exports.loginUser = catchAsyncErrors(async (req, res, next) => {
-    const {email, password} = req.body
+    const { email, password } = req.body
     if (!email || !password) {
         return next(new ErrorHandler("Please enter your email and password"), 400);
     }
-    const user = await User.findOne({email}).select("+password");
+    const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
         return next(new ErrorHandler("User is not found with this email & password", 401));
@@ -57,7 +57,7 @@ exports.logoutUser = catchAsyncErrors(async (req, res, next) => {
 });
 
 // forgot password
-exports.forgotPassword = catchAsyncErrors(async(req, res, next) => {
+exports.forgotPassword = catchAsyncErrors(async (req, res, next) => {
     const user = await User.findOne({ email: req.body.email });
 
     if (!user) {
@@ -73,7 +73,7 @@ exports.forgotPassword = catchAsyncErrors(async(req, res, next) => {
 
     const resetPasswordUrl = `${req.protocol}://${req.get("host")}/password/reset/${resetToken}`;
     const message = `Your password reset token is :- \n\n ${resetPasswordUrl}`;
-    
+
     try {
         await sendMail({
             email: user.email,
@@ -95,4 +95,33 @@ exports.forgotPassword = catchAsyncErrors(async(req, res, next) => {
 
         return next(new ErrorHandler(error.message));
     }
-})
+});
+
+// Reset Password
+exports.resetPassword = catchAsyncErrors(async (req, res, next) => {
+    // Create token hash
+    const resetPasswordToken = crypto
+        .createHash("sha256")
+        .update(req.params.token)
+        .digest("hex")
+
+    const user = await User.findOne({
+        resetPasswordToken,
+        resetPasswordTime: { $gt: Date.now() },
+    });
+
+    if (!user) {
+        return next(new ErrorHandler("Reset password url is invalid or has been expired", 400));
+    }
+
+    if (req.body.password !== req.body.confirmPassword) {
+        return next(new ErrorHandler("Password is not matched with the new password", 400));
+    }
+
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordTime = undefined;
+
+    await user.save();
+    sendToken(user, 200, res);
+});
