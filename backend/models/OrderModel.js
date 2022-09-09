@@ -87,7 +87,7 @@ const orderSchema = new mongoose.Schema({
         default: 0,
     },
     orderStatus: {
-        type: Number,
+        type: String,
         required: true,
         default: "Processing",
     },
