@@ -1,6 +1,5 @@
 const Order = require("../models/OrderModel");
 const ErrorHandler = require("../utils/ErrorHandler");
-const catchAsyncError = require("../middleware/catchAsyncErrors");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 
 // Create Order
@@ -44,8 +43,33 @@ exports.getSingleOrder = catchAsyncErrors(async(req, res, next) => {
         return next(new ErrorHandler("Order items not found with this id", 404))
     };
 
-    res.status(200).json({
+res.status(200).json({
         success: true,
         order
     })
-})
+});
+
+// Get all orders
+exports.getAllOrders = catchAsyncErrors(async (req, res, next) => {
+    const orders = await Order.find({user: req.user._id});
+    res.status(200).json({
+        success: true,
+        orders
+    });
+});
+
+// Get all orders ---admin
+exports.getAdminAllOrders = catchAsyncErrors(async (req, res, next) => {
+    const orders = await Order.find();
+    let totalAmount = 0;
+
+    orders.forEach((order) => {
+        totalAmount += order.totalPrice;
+    });
+
+    res.status(200).json({
+        success: true,
+        totalAmount,
+        orders
+    })
+});
