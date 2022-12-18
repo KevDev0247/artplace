@@ -44,7 +44,7 @@ const productSchema = new mongoose.Schema({
         required: [true, "Please add a category of your product"]
     },
     stock: {
-        type: String,
+        type: Number,
         required: [true, "Please add some stock for your product"],
         maxLength: [3, "Stock cannot exceed more than 4 characters"]
     },
